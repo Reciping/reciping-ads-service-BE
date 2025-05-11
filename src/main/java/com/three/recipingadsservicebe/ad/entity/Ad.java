@@ -1,4 +1,4 @@
-package com.three.recipingadsservicebe.ads.entity;
+package com.three.recipingadsservicebe.ad.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -18,7 +18,7 @@ import org.hibernate.annotations.SQLRestriction;
 @SQLRestriction(value = "deleted_at IS NULL")
 @Entity
 @Table(name = "ads")
-public class Ads {
+public class Ad {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
