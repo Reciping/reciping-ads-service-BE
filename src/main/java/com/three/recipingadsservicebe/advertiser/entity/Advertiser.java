@@ -1,15 +1,13 @@
 package com.three.recipingadsservicebe.advertiser.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
+
+import java.time.LocalDateTime;
 
 @Getter
 @NoArgsConstructor
@@ -23,6 +21,20 @@ public class Advertiser {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+
+    @Column(nullable = false, length = 100)
+    private String name;
+
+    @Column(length = 255)
+    private String email;
+
+    private LocalDateTime createdAt;
+    private LocalDateTime modifiedAt;
+    private LocalDateTime deletedAt;
+
+    @Column(nullable = false)
+    private Boolean isDeleted = false;
 
 
 }
