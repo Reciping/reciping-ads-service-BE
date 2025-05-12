@@ -32,6 +32,7 @@ public class AdService {
     // --------------------------------------
     // [1] 광고 등록
     // --------------------------------------
+    @Transactional
     public Long createAd(AdCreateRequest request) {
         // 광고주 존재 여부 확인
         Advertiser advertiser = advertiserRepository.findById(request.getAdvertiserId())
@@ -62,6 +63,7 @@ public class AdService {
     // --------------------------------------
     // [2] 광고 수정 (부분 수정 가능)
     // --------------------------------------
+    @Transactional
     public void updateAd(Long adId, AdUpdateRequest request) {
         Ad ad = adRepository.findById(adId)
                 .orElseThrow(() -> new EntityNotFoundException("광고가 존재하지 않습니다."));
@@ -72,6 +74,7 @@ public class AdService {
     // --------------------------------------
     // [3] 광고 상태 변경
     // --------------------------------------
+    @Transactional
     public void updateAdStatus(Long adId, AdStatusUpdateRequest request) {
         Ad ad = adRepository.findById(adId)
                 .orElseThrow(() -> new EntityNotFoundException("광고가 존재하지 않습니다."));
@@ -99,6 +102,7 @@ public class AdService {
     // --------------------------------------
     // [6] 광고 삭제 (soft delete 방식)
     // --------------------------------------
+    @Transactional
     public void deleteAd(Long adId) {
         Ad ad = adRepository.findById(adId)
                 .orElseThrow(() -> new EntityNotFoundException("광고가 존재하지 않습니다."));
