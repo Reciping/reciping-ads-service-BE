@@ -31,25 +31,24 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
         try {
             String token = jwtUtil.getTokenFromRequest(request);
 
-            if (StringUtils.hasText(token)) {
+            if (StringUtils.hasText(token) && jwtUtil.validateToken(token)) {
                 Claims claims = jwtUtil.getUserInfoFromToken(token);
 
                 String email = claims.getSubject();
                 String role = claims.get("role", String.class);
+                Long userId = claims.get("userId", Integer.class).longValue();
 
-                if (email != null && role != null) {
+                UserDetailsImpl userDetails = new UserDetailsImpl(userId, email, role);
 
-                    String authority = role.startsWith("ROLE_") ? role : "ROLE_" + role.toUpperCase();
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,
+                                null,
+                                userDetails.getAuthorities()
+                        );
 
-                    UsernamePasswordAuthenticationToken authentication =
-                            new UsernamePasswordAuthenticationToken(
-                                    email,
-                                    null,
-                                    Collections.singleton(new SimpleGrantedAuthority(authority))
-                            );
+                SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                }
             }
 
         } catch (Exception e) {
