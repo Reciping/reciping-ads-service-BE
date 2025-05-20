@@ -1,13 +1,11 @@
 package com.three.recipingadsservicebe.ad.entity;
 
 import com.three.recipingadsservicebe.ad.dto.AdUpdateRequest;
-import com.three.recipingadsservicebe.ad.enums.AdPosition;
-import com.three.recipingadsservicebe.ad.enums.AdStatus;
-import com.three.recipingadsservicebe.ad.enums.AdType;
-import com.three.recipingadsservicebe.ad.enums.BillingType;
+import com.three.recipingadsservicebe.ad.enums.*;
 import com.three.recipingadsservicebe.advertiser.entity.Advertiser;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLDelete;
@@ -18,6 +16,7 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @SQLDelete(sql = "UPDATE users SET deleted_at = now() WHERE id = ?")
 @SQLRestriction(value = "deleted_at IS NULL")
 @Entity
@@ -63,6 +62,21 @@ public class Ad {
 
     private Float score;
 
+    @Column(name = "click_count")
+    private Long clickCount = 0L;
+
+    @Column(name = "impression_count")
+    private Long impressionCount = 0L;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ab_test_group", length = 10)
+    private AbTestGroup abTestGroup;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "target_keyword", length = 50)
+    private TargetKeyword targetKeyword;
+
+
     private LocalDateTime createdAt;
     private LocalDateTime modifiedAt;
     private LocalDateTime deletedAt;
@@ -96,6 +110,20 @@ public class Ad {
     public void softDelete() {
         this.isDeleted = true;
         this.deletedAt = LocalDateTime.now();
+    }
+
+
+    public void increaseClick() {
+        this.clickCount = (this.clickCount == null ? 1 : this.clickCount + 1);
+    }
+
+    public void increaseImpression() {
+        this.impressionCount = (this.impressionCount == null ? 1 : this.impressionCount + 1);
+    }
+
+    public float calculateCTR() {
+        if (impressionCount == null || impressionCount == 0) return 0f;
+        return (float) clickCount / impressionCount;
     }
 }
 
