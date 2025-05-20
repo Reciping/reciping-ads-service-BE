@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -93,17 +94,19 @@ public class AdController {
      * 사용자 광고 노출 (위치 기반)
      */
     @GetMapping("/public/serve")
-    public ResponseEntity<AdServeResponse> serveAds(@RequestParam String position, @AuthenticationPrincipal UserDetailsImpl user) {
+    public ResponseEntity<List<AdResponse>> serveAds(@RequestParam String position) {
+        Long userId = null;
 
-        Long userId = user.getUserId();
-        AbTestGroup abGroup = AbTestAssigner .assign(userId.toString());
+        // 비로그인 사용자를 대비한 null-safe 방식
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof UserDetailsImpl user) {
+            userId = user.getUserId();
+        }
 
-        List<Ad> ads = adServeService.serveAdsByAbGroup(position, userId);
-        return ResponseEntity.ok(new AdServeResponse(
-                ads.stream().map(AdMapper::toResponse).toList(),
-                abGroup
-        ));
+        List<Ad> ads = adServeService.serveAdsByAbGroup(position, userId); // userId가 null이면 Control 그룹
+        return ResponseEntity.ok(ads.stream().map(AdMapper::toResponse).toList());
     }
+
 
     /**
      * 광고 클릭

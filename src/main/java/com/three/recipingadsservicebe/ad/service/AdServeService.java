@@ -27,7 +27,10 @@ public class AdServeService {
     @Transactional
     public List<Ad> serveAdsByAbGroup(String position, Long userId) {
         AdPosition pos = AdPosition.valueOf(position.toUpperCase());
-        AbTestGroup group = AbTestAssigner.assign(userId.toString());
+        AbTestGroup group = (userId != null)
+                ? AbTestAssigner.assign(userId.toString())
+                : AbTestGroup.CONTROL; // 비회원은 기본 Control 그룹
+
 
         LocalDateTime now = LocalDateTime.now();
 
