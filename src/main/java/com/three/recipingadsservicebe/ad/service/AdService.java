@@ -5,8 +5,10 @@ import com.three.recipingadsservicebe.ad.dto.AdResponse;
 import com.three.recipingadsservicebe.ad.dto.AdStatusUpdateRequest;
 import com.three.recipingadsservicebe.ad.dto.AdUpdateRequest;
 import com.three.recipingadsservicebe.ad.entity.Ad;
+import com.three.recipingadsservicebe.ad.enums.AbTestGroup;
 import com.three.recipingadsservicebe.ad.enums.AdPosition;
 import com.three.recipingadsservicebe.ad.enums.AdStatus;
+import com.three.recipingadsservicebe.ad.enums.TargetKeyword;
 import com.three.recipingadsservicebe.ad.repository.AdRepository;
 import com.three.recipingadsservicebe.advertiser.entity.Advertiser;
 import com.three.recipingadsservicebe.advertiser.repository.AdvertiserRepository;
@@ -38,24 +40,28 @@ public class AdService {
         Advertiser advertiser = advertiserRepository.findById(request.getAdvertiserId())
                 .orElseThrow(() -> new EntityNotFoundException("광고주가 존재하지 않습니다."));
 
-        // 광고 객체 생성 (초기 상태는 ACTIVE + spentAmount = 0)
-        Ad ad = new Ad(
-                null,
-                request.getTitle(),
-                request.getAdType(),
-                request.getImageUrl(),
-                request.getTargetUrl(),
-                request.getPreferredPosition(),
-                request.getStartAt(),
-                request.getEndAt(),
-                AdStatus.ACTIVE,
-                request.getBillingType(),
-                request.getBudget(),
-                0L,            // spentAmount 초기값
-                0f,            // score 초기값
-                LocalDateTime.now(), null, null, false,
-                advertiser
-        );
+        // 광고 객체 생성
+        Ad ad = Ad.builder()
+                .title(request.getTitle())
+                .adType(request.getAdType())
+                .imageUrl(request.getImageUrl())
+                .targetUrl(request.getTargetUrl())
+                .preferredPosition(request.getPreferredPosition())
+                .startAt(request.getStartAt())
+                .endAt(request.getEndAt())
+                .status(AdStatus.ACTIVE)
+                .billingType(request.getBillingType())
+                .budget(request.getBudget())
+                .spentAmount(0L)
+                .score(0f)
+                .clickCount(0L)
+                .impressionCount(0L)
+                .abTestGroup(request.getAbTestGroup() != null ? request.getAbTestGroup() : AbTestGroup.CONTROL)
+                .targetKeyword(request.getTargetKeyword() != null ? request.getTargetKeyword() : TargetKeyword.GENERAL)
+                .createdAt(LocalDateTime.now())
+                .isDeleted(false)
+                .advertiser(advertiser)
+                .build();
 
         return adRepository.save(ad).getId();
     }

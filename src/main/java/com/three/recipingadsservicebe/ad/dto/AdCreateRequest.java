@@ -1,8 +1,6 @@
 package com.three.recipingadsservicebe.ad.dto;
 
-import com.three.recipingadsservicebe.ad.enums.AdPosition;
-import com.three.recipingadsservicebe.ad.enums.AdType;
-import com.three.recipingadsservicebe.ad.enums.BillingType;
+import com.three.recipingadsservicebe.ad.enums.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -40,4 +38,7 @@ public class AdCreateRequest {
     @NotNull
     @Min(0)
     private Long budget;
+
+    private AbTestGroup abTestGroup;
+    private TargetKeyword targetKeyword;
 }
