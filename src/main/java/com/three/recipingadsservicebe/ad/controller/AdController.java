@@ -4,7 +4,12 @@ import com.three.recipingadsservicebe.ad.dto.AdCreateRequest;
 import com.three.recipingadsservicebe.ad.dto.AdResponse;
 import com.three.recipingadsservicebe.ad.dto.AdStatusUpdateRequest;
 import com.three.recipingadsservicebe.ad.dto.AdUpdateRequest;
-import com.three.recipingadsservicebe.ad.service.AdService;
+import com.three.recipingadsservicebe.ad.entity.Ad;
+import com.three.recipingadsservicebe.ad.mapper.AdMapper;
+import com.three.recipingadsservicebe.ad.service.AdClickService;
+import com.three.recipingadsservicebe.ad.service.AdCommandService;
+import com.three.recipingadsservicebe.ad.service.AdQueryService;
+import com.three.recipingadsservicebe.ad.service.AdServeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +23,11 @@ import java.util.List;
 @RestController
 public class AdController {
 
-    private final AdService adService;
+    private final AdServeService adServeService;
+    private final AdCommandService adService;
+    private final AdQueryService adQueryService;
+    private final AdClickService adClickService;
+
     /**
      * 광고 등록
      */
@@ -35,7 +44,7 @@ public class AdController {
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<List<AdResponse>> getAllAds() {
-        return ResponseEntity.ok(adService.getAllAds());
+        return ResponseEntity.ok(adQueryService.getAllAds());
     }
 
     /**
@@ -44,7 +53,7 @@ public class AdController {
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{adId}")
     public ResponseEntity<AdResponse> getAd(@PathVariable Long adId) {
-        return ResponseEntity.ok(adService.getAd(adId));
+        return ResponseEntity.ok(adQueryService.getAd(adId));
     }
 
     /**
@@ -83,8 +92,19 @@ public class AdController {
      * 사용자 광고 노출 (위치 기반)
      */
     @GetMapping("/public/serve")
-    public ResponseEntity<List<AdResponse>> serveAdsByPosition(@RequestParam String position) {
-        return ResponseEntity.ok(adService.serveAdsByPosition(position));
+    public ResponseEntity<List<AdResponse>> serveAds(@RequestParam String position) {
+        List<Ad> ads = adServeService.serveAdsByPosition(position);
+        return ResponseEntity.ok(ads.stream().map(AdMapper::toResponse).toList());
+    }
+
+    /**
+     * 광고 클릭
+     */
+
+    @PostMapping("/{adId}/click")
+    public ResponseEntity<Void> clickAd(@PathVariable Long adId) {
+        adClickService.handleClick(adId);
+        return ResponseEntity.ok().build();
     }
 
 }

@@ -121,6 +121,10 @@ public class Ad {
         this.impressionCount = (this.impressionCount == null ? 1 : this.impressionCount + 1);
     }
 
+    public void increaseSpentAmount(Long amount) {
+        this.spentAmount = (this.spentAmount == null ? amount : this.spentAmount + amount);
+    }
+
     public float calculateCTR() {
         if (impressionCount == null || impressionCount == 0) return 0f;
         return (float) clickCount / impressionCount;
