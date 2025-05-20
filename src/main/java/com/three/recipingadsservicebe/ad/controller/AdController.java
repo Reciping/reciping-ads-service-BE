@@ -1,19 +1,20 @@
 package com.three.recipingadsservicebe.ad.controller;
 
-import com.three.recipingadsservicebe.ad.dto.AdCreateRequest;
-import com.three.recipingadsservicebe.ad.dto.AdResponse;
-import com.three.recipingadsservicebe.ad.dto.AdStatusUpdateRequest;
-import com.three.recipingadsservicebe.ad.dto.AdUpdateRequest;
+import com.three.recipingadsservicebe.ad.dto.*;
 import com.three.recipingadsservicebe.ad.entity.Ad;
+import com.three.recipingadsservicebe.ad.enums.AbTestGroup;
 import com.three.recipingadsservicebe.ad.mapper.AdMapper;
 import com.three.recipingadsservicebe.ad.service.AdClickService;
 import com.three.recipingadsservicebe.ad.service.AdCommandService;
 import com.three.recipingadsservicebe.ad.service.AdQueryService;
 import com.three.recipingadsservicebe.ad.service.AdServeService;
+import com.three.recipingadsservicebe.global.security.UserDetailsImpl;
+import com.three.recipingadsservicebe.global.util.AbTestAssigner;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -92,9 +93,16 @@ public class AdController {
      * 사용자 광고 노출 (위치 기반)
      */
     @GetMapping("/public/serve")
-    public ResponseEntity<List<AdResponse>> serveAds(@RequestParam String position) {
-        List<Ad> ads = adServeService.serveAdsByPosition(position);
-        return ResponseEntity.ok(ads.stream().map(AdMapper::toResponse).toList());
+    public ResponseEntity<AdServeResponse> serveAds(@RequestParam String position, @AuthenticationPrincipal UserDetailsImpl user) {
+
+        Long userId = user.getUserId();
+        AbTestGroup abGroup = AbTestAssigner .assign(userId.toString());
+
+        List<Ad> ads = adServeService.serveAdsByAbGroup(position, userId);
+        return ResponseEntity.ok(new AdServeResponse(
+                ads.stream().map(AdMapper::toResponse).toList(),
+                abGroup
+        ));
     }
 
     /**
