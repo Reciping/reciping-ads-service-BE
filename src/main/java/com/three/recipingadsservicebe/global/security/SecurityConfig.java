@@ -34,9 +34,17 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui.html",
+                                "/swagger-ui/**"
+                        ).permitAll()
 
                         // ✅ 사용자 광고 조회 API는 인증 없이 허용
                         .requestMatchers(HttpMethod.GET, "/api/v1/ads/public/**").permitAll()
+
+                        // ✅ 광고 노출/클릭 로그 API → 비회원 허용
+                        .requestMatchers(HttpMethod.POST, "/api/v1/ads/log/**").permitAll()
 
                         // ✅ 광고 CRUD는 ADMIN만 허용
                         .requestMatchers(HttpMethod.POST, "/api/v1/ads/**").hasRole("ADMIN")
