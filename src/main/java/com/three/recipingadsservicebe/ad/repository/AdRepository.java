@@ -1,5 +1,6 @@
 package com.three.recipingadsservicebe.ad.repository;
 
+import com.three.recipingadsservicebe.abtest.entity.AbTestScenario;
 import com.three.recipingadsservicebe.ad.entity.Ad;
 import com.three.recipingadsservicebe.ad.enums.AbTestGroup;
 import com.three.recipingadsservicebe.ad.enums.AdPosition;
@@ -20,6 +21,12 @@ public interface AdRepository extends JpaRepository<Ad, Long> {
             LocalDateTime start,
             LocalDateTime end
     );
+
+
+
+    List<Ad> findByAbTestScenarioIdAndPreferredPosition(Long scenarioId, AdPosition position);
+
+
 
 
 
