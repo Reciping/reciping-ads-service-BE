@@ -13,11 +13,17 @@ public class UserDetailsImpl implements UserDetails {
     private final Long userId;
     private final String email;
     private final String role;
+    private String token;
 
-    public UserDetailsImpl(Long userId, String email, String role) {
+    public UserDetailsImpl(Long userId, String email, String role, String token) {
         this.userId = userId;
         this.email = email;
         this.role = role;
+        this.token = token;
+    }
+
+    public String getToken() {
+        return token;
     }
 
     public Long getUserId() {

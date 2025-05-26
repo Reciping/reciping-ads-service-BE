@@ -38,7 +38,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
                 String role = claims.get("role", String.class);
                 Long userId = claims.get("userId", Integer.class).longValue();
 
-                UserDetailsImpl userDetails = new UserDetailsImpl(userId, email, role);
+                UserDetailsImpl userDetails = new UserDetailsImpl(userId, email, role,token);
 
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
