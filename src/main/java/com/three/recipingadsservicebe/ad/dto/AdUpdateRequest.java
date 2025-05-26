@@ -3,6 +3,7 @@ package com.three.recipingadsservicebe.ad.dto;
 import com.three.recipingadsservicebe.ad.enums.AdPosition;
 import com.three.recipingadsservicebe.ad.enums.AdType;
 import com.three.recipingadsservicebe.ad.enums.BillingType;
+import com.three.recipingadsservicebe.segment.enums.SegmentType;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -27,4 +28,6 @@ public class AdUpdateRequest {
     private BillingType billingType;
 
     private Long budget;
+
+    private SegmentType targetSegment;
 }

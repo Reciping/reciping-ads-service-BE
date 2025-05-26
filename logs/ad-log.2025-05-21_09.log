@@ -1,0 +1,5 @@
+IMPRESSION	2025-05-21T09:34:54.014625	/api/v1/ads/log/impression	POST	-	1	MAIN_TOP
+	-	127.0.0.1	PostmanRuntime/7.43.4	-	-
+IMPRESSION	2025-05-21T09:50:21.914925+09:00	/api/v1/ads/log/impression	POST	-	1	MAIN_TOP	-	127.0.0.1	PostmanRuntime/7.43.4	-	-
+IMPRESSION	2025-05-21T09:53:10.669418+09:00	/api/v1/ads/log/impression	POST	301	1	MAIN_TOP	-	127.0.0.1	PostmanRuntime/7.43.4	-	-
+IMPRESSION	2025-05-21T09:55:28.827215+09:00	/api/v1/ads/log/impression	POST	301	1	MAIN_TOP	A	127.0.0.1	PostmanRuntime/7.43.4	-	-

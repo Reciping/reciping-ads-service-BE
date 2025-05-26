@@ -1,13 +1,13 @@
 package com.three.recipingadsservicebe.ad.entity;
 
+import com.three.recipingadsservicebe.abtest.entity.AbTestScenario;
 import com.three.recipingadsservicebe.ad.dto.AdUpdateRequest;
-import com.three.recipingadsservicebe.ad.enums.AdPosition;
-import com.three.recipingadsservicebe.ad.enums.AdStatus;
-import com.three.recipingadsservicebe.ad.enums.AdType;
-import com.three.recipingadsservicebe.ad.enums.BillingType;
+import com.three.recipingadsservicebe.ad.enums.*;
 import com.three.recipingadsservicebe.advertiser.entity.Advertiser;
+import com.three.recipingadsservicebe.segment.enums.SegmentType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLDelete;
@@ -18,7 +18,8 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-@SQLDelete(sql = "UPDATE users SET deleted_at = now() WHERE id = ?")
+@Builder
+@SQLDelete(sql = "UPDATE ads SET deleted_at = now() WHERE id = ?")
 @SQLRestriction(value = "deleted_at IS NULL")
 @Entity
 @Table(name = "ads")
@@ -63,6 +64,21 @@ public class Ad {
 
     private Float score;
 
+    @Column(name = "click_count")
+    private Long clickCount = 0L;
+
+    @Column(name = "impression_count")
+    private Long impressionCount = 0L;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ab_test_group", length = 10)
+    private AbTestGroup abTestGroup;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "target_keyword", length = 50)
+    private TargetKeyword targetKeyword;
+
+
     private LocalDateTime createdAt;
     private LocalDateTime modifiedAt;
     private LocalDateTime deletedAt;
@@ -74,6 +90,15 @@ public class Ad {
     @JoinColumn(name = "advertiser_id", nullable = false)
     private Advertiser advertiser;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ab_test_scenario_id")
+    private AbTestScenario abTestScenario;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "target_segment", length = 50)
+    private SegmentType targetSegment;
+
+
     public void updateFrom(AdUpdateRequest request) {
         if (request.getTitle() != null) this.title = request.getTitle();
         if (request.getAdType() != null) this.adType = request.getAdType();
@@ -84,6 +109,8 @@ public class Ad {
         if (request.getEndAt() != null) this.endAt = request.getEndAt();
         if (request.getBillingType() != null) this.billingType = request.getBillingType();
         if (request.getBudget() != null) this.budget = request.getBudget();
+        if (request.getTargetSegment() != null) this.targetSegment = request.getTargetSegment();
+
 
         this.modifiedAt = LocalDateTime.now();
     }
@@ -96,6 +123,24 @@ public class Ad {
     public void softDelete() {
         this.isDeleted = true;
         this.deletedAt = LocalDateTime.now();
+    }
+
+
+    public void increaseClick() {
+        this.clickCount = (this.clickCount == null ? 1 : this.clickCount + 1);
+    }
+
+    public void increaseImpression() {
+        this.impressionCount = (this.impressionCount == null ? 1 : this.impressionCount + 1);
+    }
+
+    public void increaseSpentAmount(Long amount) {
+        this.spentAmount = (this.spentAmount == null ? amount : this.spentAmount + amount);
+    }
+
+    public float calculateCTR() {
+        if (impressionCount == null || impressionCount == 0) return 0f;
+        return (float) clickCount / impressionCount;
     }
 }
 

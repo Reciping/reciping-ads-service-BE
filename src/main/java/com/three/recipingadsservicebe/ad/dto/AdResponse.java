@@ -4,6 +4,7 @@ import com.three.recipingadsservicebe.ad.enums.AdPosition;
 import com.three.recipingadsservicebe.ad.enums.AdStatus;
 import com.three.recipingadsservicebe.ad.enums.AdType;
 import com.three.recipingadsservicebe.ad.enums.BillingType;
+import com.three.recipingadsservicebe.segment.enums.SegmentType;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -26,5 +27,7 @@ public class AdResponse {
     private Long spentAmount;
     private AdStatus status;
     private Float score;
+    private SegmentType targetSegment;
+
 }
 

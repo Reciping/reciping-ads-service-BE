@@ -1,8 +1,9 @@
 package com.three.recipingadsservicebe.ad.dto;
 
-import com.three.recipingadsservicebe.ad.enums.AdPosition;
-import com.three.recipingadsservicebe.ad.enums.AdType;
-import com.three.recipingadsservicebe.ad.enums.BillingType;
+import com.three.recipingadsservicebe.ad.entity.Ad;
+import com.three.recipingadsservicebe.ad.enums.*;
+import com.three.recipingadsservicebe.advertiser.entity.Advertiser;
+import com.three.recipingadsservicebe.segment.enums.SegmentType;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -40,4 +41,34 @@ public class AdCreateRequest {
     @NotNull
     @Min(0)
     private Long budget;
+
+    private AbTestGroup abTestGroup;
+    private TargetKeyword targetKeyword;
+    private SegmentType targetSegment;
+
+    public Ad toEntity(Advertiser advertiser) {
+        return Ad.builder()
+                .title(title)
+                .adType(adType)
+                .imageUrl(imageUrl)
+                .targetUrl(targetUrl)
+                .preferredPosition(preferredPosition)
+                .startAt(startAt)
+                .endAt(endAt)
+                .status(AdStatus.ACTIVE)
+                .billingType(billingType)
+                .budget(budget)
+                .spentAmount(0L)
+                .score(0f)
+                .clickCount(0L)
+                .impressionCount(0L)
+                .abTestGroup(abTestGroup != null ? abTestGroup : AbTestGroup.CONTROL)
+                .targetKeyword(targetKeyword != null ? targetKeyword : TargetKeyword.GENERAL)
+                .targetSegment(targetSegment)
+                .createdAt(LocalDateTime.now())
+                .isDeleted(false)
+                .advertiser(advertiser)
+
+                .build();
+    }
 }
