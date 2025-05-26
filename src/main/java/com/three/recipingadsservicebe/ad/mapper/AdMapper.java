@@ -20,6 +20,7 @@ public class AdMapper {
                 .spentAmount(ad.getSpentAmount())
                 .status(ad.getStatus())
                 .score(ad.getScore())
+                .targetSegment(ad.getTargetSegment())
                 .build();
     }
 }
