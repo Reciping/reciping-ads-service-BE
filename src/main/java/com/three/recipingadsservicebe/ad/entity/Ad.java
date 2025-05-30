@@ -90,9 +90,8 @@ public class Ad {
     @JoinColumn(name = "advertiser_id", nullable = false)
     private Advertiser advertiser;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ab_test_scenario_id")
-    private AbTestScenario abTestScenario;
+    @Column(name = "scenario_code")
+    private String scenarioCode;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "target_segment", length = 50)
