@@ -1,33 +1,25 @@
 package com.three.recipingadsservicebe.ad.controller;
 
-import com.three.recipingadsservicebe.abtest.entity.AbTestScenario;
 import com.three.recipingadsservicebe.abtest.repository.AbTestScenarioRepository;
 import com.three.recipingadsservicebe.ad.dto.*;
 import com.three.recipingadsservicebe.ad.entity.Ad;
-import com.three.recipingadsservicebe.ad.enums.AbTestGroup;
-import com.three.recipingadsservicebe.ad.enums.AdPosition;
-import com.three.recipingadsservicebe.ad.enums.AdStatus;
 import com.three.recipingadsservicebe.ad.mapper.AdMapper;
 import com.three.recipingadsservicebe.ad.repository.AdRepository;
 import com.three.recipingadsservicebe.ad.service.AdClickService;
 import com.three.recipingadsservicebe.ad.service.AdCommandService;
 import com.three.recipingadsservicebe.ad.service.AdQueryService;
-import com.three.recipingadsservicebe.ad.service.AdServeService;
 import com.three.recipingadsservicebe.ad.service.selector.AdSelector;
 import com.three.recipingadsservicebe.feign.UserFeignClient;
 import com.three.recipingadsservicebe.global.security.UserDetailsImpl;
-import com.three.recipingadsservicebe.global.util.AbTestAssigner;
 import com.three.recipingadsservicebe.segment.dto.UserInfoDto;
 import com.three.recipingadsservicebe.segment.service.ABTestManager;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,15 +29,12 @@ import java.util.Map;
 @RestController
 public class AdController {
 
-    private final AdServeService adServeService;
     private final AdCommandService adService;
     private final AdQueryService adQueryService;
     private final AdClickService adClickService;
     private final AdSelector adSelector;
     private final UserFeignClient userFeignClient;
-    private final ABTestManager abTestManager;
-    private final AdRepository adRepository;
-    private final AbTestScenarioRepository abTestScenarioRepository;
+
 
     /**
      * 광고 등록
@@ -159,28 +148,6 @@ public class AdController {
         Long testUserId = 1L;
         UserInfoDto userInfo = userFeignClient.getUserInfo(testUserId);
         return ResponseEntity.ok(userInfo);
-    }
-
-
-    @GetMapping("/test/default-ads")
-    public ResponseEntity<List<AdResponse>> testDefaultAds() {
-        AbTestScenario scenario = abTestScenarioRepository
-                .findByScenarioCodeAndIsActiveTrue("SC_DEFAULT_GENERAL")
-                .orElseThrow();
-
-        List<Ad> ads = adRepository.findByAbTestScenarioIdAndPreferredPosition(scenario.getId(), AdPosition.MAIN_TOP).stream()
-                .filter(ad -> ad.getStatus() == AdStatus.ACTIVE)
-                .filter(ad -> !ad.getIsDeleted())
-                .filter(ad -> ad.getDeletedAt() == null)
-                .filter(ad -> ad.getStartAt().isBefore(LocalDateTime.now()))
-                .filter(ad -> ad.getEndAt().isAfter(LocalDateTime.now()))
-                .toList();
-
-        List<AdResponse> response = ads.stream()
-                .map(AdMapper::toResponse)
-                .toList();
-
-        return ResponseEntity.ok(response);
     }
 
 
