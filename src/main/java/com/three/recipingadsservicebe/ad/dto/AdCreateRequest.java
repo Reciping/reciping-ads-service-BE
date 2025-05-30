@@ -7,11 +7,15 @@ import com.three.recipingadsservicebe.segment.enums.SegmentType;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Getter
+@NoArgsConstructor
+@AllArgsConstructor
 public class AdCreateRequest {
     @NotNull
     private Long advertiserId;
