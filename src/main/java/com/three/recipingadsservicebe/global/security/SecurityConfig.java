@@ -40,6 +40,9 @@ public class SecurityConfig {
                                 "/swagger-ui/**"
                         ).permitAll()
 
+                        // ✅ 이미지 업로드 비회원 임시 허용
+                        .requestMatchers(HttpMethod.POST, "/api/v1/ads/images").permitAll()
+
                         // ✅ 사용자 광고 조회 API는 인증 없이 허용
                         .requestMatchers(HttpMethod.GET, "/api/v1/ads/public/**").permitAll()
 
