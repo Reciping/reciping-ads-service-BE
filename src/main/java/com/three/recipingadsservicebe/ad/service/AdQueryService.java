@@ -32,4 +32,10 @@ public class AdQueryService {
                 .map(AdMapper::toResponse)  // 매퍼 사용
                 .collect(Collectors.toList());
     }
+
+    public Ad findById(Long adId) {
+        return adRepository.findById(adId)
+                .orElseThrow(() -> new EntityNotFoundException("광고가 존재하지 않습니다."));
+    }
+
 }
