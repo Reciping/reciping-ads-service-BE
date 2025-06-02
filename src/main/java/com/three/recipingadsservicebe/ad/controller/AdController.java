@@ -15,6 +15,10 @@ import com.three.recipingadsservicebe.global.security.UserDetailsImpl;
 import com.three.recipingadsservicebe.segment.dto.UserInfoDto;
 import com.three.recipingadsservicebe.segment.enums.SegmentType;
 import com.three.recipingadsservicebe.segment.service.SegmentCalculatorUtil;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
+import io.micrometer.core.instrument.Timer;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +31,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -43,14 +48,28 @@ public class AdController {
     private final ObjectMapper objectMapper;
     private final SegmentCalculatorUtil segmentCalculatorUtil;
 
+    // ✅ 메트릭 수집을 위한 새로운 의존성들
+    private final MeterRegistry meterRegistry;
+    private final Timer adServeTimer;
+    private final AtomicInteger activeAdsGauge;
+
+
     /**
-     * 광고 등록
+     * 광고 등록 (메트릭 추가)
      */
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     public ResponseEntity<Long> createAd(@Valid @RequestBody AdCreateRequest request,
                                          HttpServletRequest httpRequest) {
         Long adId = adService.createAd(request);
+
+        // 메트릭 수집
+        meterRegistry.counter("ads_created_total", Tags.of(
+                "ad_type", request.getAdType().toString(),
+                "position", request.getPreferredPosition().toString(),
+                "advertiser_id", request.getAdvertiserId().toString()
+        )).increment();
+
 
         // 광고 생성 로깅
         try {
@@ -214,10 +233,13 @@ public class AdController {
     }
 
     /**
-     * 사용자 광고 노출 (위치 기반)
+     * 사용자 광고 노출 (수정된 메트릭)
      */
     @GetMapping("/public/serve")
     public ResponseEntity<Map<String, List<AdResponse>>> serveAllAds(HttpServletRequest httpRequest) {
+        // ✅ 타이머는 그대로 사용 가능 (태그 없이 생성했으므로)
+        Timer.Sample timerSample = Timer.start(meterRegistry);
+
         Long userId = null;
         UserInfoDto userInfo = null;
 
@@ -238,33 +260,41 @@ public class AdController {
         // ④ 응답 변환
         Map<String, List<AdResponse>> result = new HashMap<>();
 
-        // ⑤ 광고 서빙 로깅 (전체 서빙 정보)
+        // ⑤ 광고 서빙 로깅 및 메트릭 수집
         try {
             Map<String, Object> servePayload = new HashMap<>();
             SegmentType segment = userInfo != null ? segmentCalculatorUtil.calculate(userInfo) : SegmentType.GENERAL_ALL;
             servePayload.put("userSegment", segment.name());
 
-            servePayload.put("totalAds", adsByPosition.values().stream().mapToInt(List::size).sum());
+            int totalAdsServed = adsByPosition.values().stream().mapToInt(List::size).sum();
+            servePayload.put("totalAds", totalAdsServed);
 
             Map<String, Object> positionInfo = new HashMap<>();
+
             for (Map.Entry<String, List<Ad>> entry : adsByPosition.entrySet()) {
                 String position = entry.getKey();
                 List<Ad> ads = entry.getValue();
 
-                // 각 위치별 광고 정보
-                List<Map<String, Object>> adInfoList = ads.stream().map(ad -> {
-                    Map<String, Object> adInfo = new HashMap<>();
-                    adInfo.put("adId", ad.getId());
-                    adInfo.put("scenario", ad.getScenarioCode());
-                    adInfo.put("targetSegment", ad.getTargetSegment());
-                    adInfo.put("abGroup", ad.getAbTestGroup());
-                    return adInfo;
-                }).collect(Collectors.toList());
-
-                positionInfo.put(position, adInfoList);
-
-                // 개별 광고 노출 로깅
+                // 개별 광고 노출 메트릭 및 로깅
                 for (Ad ad : ads) {
+                    // ✅ 올바른 노출 메트릭 수집
+                    meterRegistry.counter("ads_impressions_total", Tags.of(
+                            "position", position,
+                            "segment", segment.name(),
+                            "scenario", ad.getScenarioCode() != null ? ad.getScenarioCode() : "UNKNOWN",
+                            "advertiser_id", ad.getAdvertiser().getId().toString()
+                    )).increment();
+
+                    // ✅ 올바른 A/B 테스트 노출 메트릭
+                    if (ad.getAbTestGroup() != null && ad.getScenarioCode() != null) {
+                        meterRegistry.counter("ads_abtest_impressions_total", Tags.of(
+                                "ab_group", ad.getAbTestGroup().toString(),
+                                "scenario", ad.getScenarioCode(),
+                                "segment", segment.name()
+                        )).increment();
+                    }
+
+                    // 기존 로깅 코드...
                     Map<String, Object> impressionPayload = new HashMap<>();
                     impressionPayload.put("position", position);
                     impressionPayload.put("scenario", ad.getScenarioCode());
@@ -285,16 +315,14 @@ public class AdController {
                             httpRequest
                     );
 
-                    // 노출 카운트 증가 (비동기 처리 고려)
                     ad.increaseImpression();
                 }
 
                 result.put(position, ads.stream().map(AdMapper::toResponse).toList());
             }
 
+            // 기존 로깅...
             servePayload.put("positions", positionInfo);
-
-            // 전체 서빙 로깅
             AdLogger.track(
                     log,
                     LogType.AD_SERVE,
@@ -309,21 +337,40 @@ public class AdController {
 
         } catch (Exception e) {
             log.warn("광고 서빙 로깅 실패: {}", e.getMessage());
+        } finally {
+            // ✅ 타이머 종료
+            timerSample.stop(adServeTimer);
         }
 
         return ResponseEntity.ok(result);
     }
 
     /**
-     * 광고 클릭
+     * 광고 클릭 (수정된 메트릭)
      */
     @PostMapping("/{adId}/click")
     public ResponseEntity<Void> clickAd(@PathVariable Long adId,
                                         HttpServletRequest httpRequest) {
-        // 클릭 정보 조회 (position, scenario 등)
         Ad ad = adQueryService.findById(adId);
 
-        // 광고 클릭 로깅
+        // ✅ 올바른 클릭 메트릭 수집
+        meterRegistry.counter("ads_clicks_total", Tags.of(
+                "position", ad.getPreferredPosition().toString(),
+                "scenario", ad.getScenarioCode() != null ? ad.getScenarioCode() : "UNKNOWN",
+                "segment", ad.getTargetSegment() != null ? ad.getTargetSegment().toString() : "UNKNOWN",
+                "advertiser_id", ad.getAdvertiser().getId().toString()
+        )).increment();
+
+        // ✅ 올바른 A/B 테스트 클릭 메트릭
+        if (ad.getAbTestGroup() != null && ad.getScenarioCode() != null) {
+            meterRegistry.counter("ads_abtest_clicks_total", Tags.of(
+                    "ab_group", ad.getAbTestGroup().toString(),
+                    "scenario", ad.getScenarioCode(),
+                    "segment", ad.getTargetSegment() != null ? ad.getTargetSegment().toString() : "UNKNOWN"
+            )).increment();
+        }
+
+        // 기존 로깅 코드...
         try {
             Map<String, Object> clickPayload = new HashMap<>();
             clickPayload.put("position", ad.getPreferredPosition());
@@ -349,15 +396,10 @@ public class AdController {
             log.warn("광고 클릭 로깅 실패: {}", e.getMessage());
         }
 
-        // 클릭 처리
         adClickService.handleClick(adId);
-
         return ResponseEntity.ok().build();
     }
 
-    /**
-     * 현재 로그인한 사용자 ID 조회
-     */
     private String getCurrentUserId() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (principal instanceof UserDetailsImpl user) {
@@ -365,5 +407,4 @@ public class AdController {
         }
         return null;
     }
-
 }
