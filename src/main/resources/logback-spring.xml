@@ -3,12 +3,11 @@
 
     <!-- 프로파일별 로그 경로 설정 -->
     <springProfile name="local,default,dev">
-        <!-- 로컬 개발 환경: 프로젝트 루트의 logs 폴더 -->
         <property name="LOG_PATH" value="./logs/ads-service"/>
     </springProfile>
 
     <springProfile name="prod">
-        <!-- 운영 환경: 표준 경로 (팀 표준) -->
+        <!-- 운영 환경: Promtail이 수집할 경로로 변경 -->
         <property name="LOG_PATH" value="/var/log/reciping/ads-service"/>
     </springProfile>
 
@@ -28,36 +27,56 @@
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${LOG_PATH}/${LOG_FILE}.%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>14</maxHistory>
+            <totalSizeCap>10GB</totalSizeCap> <!-- 전체 로그 크기 제한 추가 -->
         </rollingPolicy>
 
         <encoder>
+            <!-- Loki 파싱을 위한 구조화된 패턴 -->
             <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId}] %logger{36} - %msg%n</pattern>
             <immediateFlush>true</immediateFlush>
         </encoder>
     </appender>
 
-    <!-- AdController 전용 로그 (팀 표준 형식) -->
+    <!-- AdController 전용 로그 -->
     <appender name="AD_CONTROLLER_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_PATH}/AdController.log</file>
 
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${LOG_PATH}/AdController.%d{yyyy-MM-dd}.log</fileNamePattern>
-            <maxHistory>30</maxHistory> <!-- 광고 로그는 30일 보관 -->
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>20GB</totalSizeCap>
         </rollingPolicy>
 
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId}] %logger{36} - %msg%n</pattern>
-            <immediateFlush>true</immediateFlush>
+        <!-- Loki용 구조화된 로그 형식 -->
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp/>
+                <logLevel/>
+                <loggerName/>
+                <mdc/>
+                <message/>
+                <pattern>
+                    <pattern>
+                        {
+                        "service": "ads-service",
+                        "logger": "AdController",
+                        "environment": "${spring.profiles.active:-unknown}"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+            <includeContext>true</includeContext>
         </encoder>
     </appender>
 
-    <!-- AdSelector 전용 로그 (세그먼트 매칭, 폴백 추적) -->
+    <!-- AdSelector 전용 로그 -->
     <appender name="AD_SELECTOR_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_PATH}/AdSelector.log</file>
 
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${LOG_PATH}/AdSelector.%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>14</maxHistory>
+            <totalSizeCap>5GB</totalSizeCap>
         </rollingPolicy>
 
         <encoder>
@@ -66,34 +85,63 @@
         </encoder>
     </appender>
 
-    <!-- 광고 비즈니스 이벤트 로그 (분석용) -->
+    <!-- 광고 비즈니스 이벤트 로그 (분석용) - JSON 형식으로 변경 -->
     <appender name="AD_BUSINESS_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_PATH}/ad-business-events.log</file>
 
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${LOG_PATH}/ad-business-events.%d{yyyy-MM-dd}.log</fileNamePattern>
-            <maxHistory>90</maxHistory> <!-- 비즈니스 분석용 90일 보관 -->
+            <maxHistory>90</maxHistory>
+            <totalSizeCap>50GB</totalSizeCap>
         </rollingPolicy>
 
-        <encoder>
-            <!-- 탭 구분자로 구조화된 로그 (Loki 파싱 용이) -->
-            <pattern>%msg%n</pattern>
-            <immediateFlush>true</immediateFlush>
+        <!-- JSON 형식으로 로그 출력 (Loki 파싱 최적화) -->
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp/>
+                <logLevel/>
+                <mdc/>
+                <arguments/>
+                <message/>
+                <pattern>
+                    <pattern>
+                        {
+                        "service": "ads-service",
+                        "log_type": "business_events",
+                        "environment": "${spring.profiles.active:-unknown}"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
+            <includeContext>true</includeContext>
         </encoder>
     </appender>
 
-    <!-- 광고 성능 메트릭 로그 (실시간 모니터링용) -->
+    <!-- 광고 성능 메트릭 로그 -->
     <appender name="AD_METRICS_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_PATH}/ad-metrics.log</file>
 
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
             <fileNamePattern>${LOG_PATH}/ad-metrics.%d{yyyy-MM-dd_HH}.log</fileNamePattern>
-            <maxHistory>7</maxHistory> <!-- 실시간 메트릭은 7일만 -->
+            <maxHistory>168</maxHistory> <!-- 7일 * 24시간 -->
+            <totalSizeCap>10GB</totalSizeCap>
         </rollingPolicy>
 
-        <encoder>
-            <pattern>%msg%n</pattern>
-            <immediateFlush>true</immediateFlush>
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <timestamp/>
+                <mdc/>
+                <message/>
+                <pattern>
+                    <pattern>
+                        {
+                        "service": "ads-service",
+                        "log_type": "metrics",
+                        "environment": "${spring.profiles.active:-unknown}"
+                        }
+                    </pattern>
+                </pattern>
+            </providers>
         </encoder>
     </appender>
 
