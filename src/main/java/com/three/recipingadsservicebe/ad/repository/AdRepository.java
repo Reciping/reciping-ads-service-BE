@@ -1,66 +1,93 @@
 package com.three.recipingadsservicebe.ad.repository;
 
-import com.three.recipingadsservicebe.abtest.entity.AbTestScenario;
 import com.three.recipingadsservicebe.ad.entity.Ad;
-import com.three.recipingadsservicebe.ad.enums.AbTestGroup;
 import com.three.recipingadsservicebe.ad.enums.AdPosition;
-import com.three.recipingadsservicebe.ad.enums.AdStatus;
-import com.three.recipingadsservicebe.segment.enums.SegmentType;
+import com.three.recipingadsservicebe.targeting.enums.CookingStylePreference;
+import com.three.recipingadsservicebe.targeting.enums.DemographicSegment;
+import com.three.recipingadsservicebe.targeting.enums.EngagementLevel;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+
 
 public interface AdRepository extends JpaRepository<Ad, Long> {
-// AdRepository.java - 성능 최적화를 위한 배치 쿼리 메서드들
+    /**
+     * 행동태그 완전 매치 광고 검색
+     */
+    @Query("""
+        SELECT a FROM Ad a 
+        WHERE a.preferredPosition = :position 
+        AND a.status = 'ACTIVE' 
+        AND a.isDeleted = false
+        AND (a.startAt IS NULL OR a.startAt <= CURRENT_TIMESTAMP)
+        AND (a.endAt IS NULL OR a.endAt >= CURRENT_TIMESTAMP)
+        AND (a.budget IS NULL OR a.spentAmount IS NULL OR a.spentAmount < a.budget)
+        AND a.scenarioCode = :scenarioCode
+        AND a.targetDemographicSegment = :demographic
+        AND a.targetEngagementLevel = :engagement
+        AND a.targetCookingStyle = :cookingStyle
+        ORDER BY a.score DESC, a.createdAt DESC
+        """)
+    List<Ad> findByBehaviorTargeting(
+            @Param("position") AdPosition position,
+            @Param("scenarioCode") String scenarioCode,
+            @Param("demographic") DemographicSegment demographic,
+            @Param("engagement") EngagementLevel engagement,
+            @Param("cookingStyle") CookingStylePreference cookingStyle);
 
     /**
-     * 🔥 개선: 여러 시나리오 코드로 한 번에 조회
+     * 행동태그 부분 매치 광고 검색
      */
-    @Query("SELECT a FROM Ad a WHERE a.scenarioCode IN :scenarioCodes AND a.status = 'ACTIVE' " +
-            "ORDER BY a.score DESC, a.createdAt DESC")
-    List<Ad> findByScenarioCodesIn(@Param("scenarioCodes") Set<String> scenarioCodes);
+    @Query("""
+        SELECT a FROM Ad a 
+        WHERE a.preferredPosition = :position 
+        AND a.status = 'ACTIVE' 
+        AND a.isDeleted = false
+        AND (a.startAt IS NULL OR a.startAt <= CURRENT_TIMESTAMP)
+        AND (a.endAt IS NULL OR a.endAt >= CURRENT_TIMESTAMP)
+        AND (a.budget IS NULL OR a.spentAmount IS NULL OR a.spentAmount < a.budget)
+        AND a.scenarioCode = :scenarioCode
+        AND (
+            a.targetCookingStyle = :cookingStyle OR
+            a.targetEngagementLevel = :engagement OR
+            a.targetDemographicSegment = :demographic OR
+            (a.targetDemographicSegment IS NULL AND a.targetEngagementLevel IS NULL AND a.targetCookingStyle IS NULL)
+        )
+        ORDER BY 
+            CASE 
+                WHEN a.targetCookingStyle = :cookingStyle THEN 1
+                WHEN a.targetEngagementLevel = :engagement THEN 2  
+                WHEN a.targetDemographicSegment = :demographic THEN 3
+                ELSE 4
+            END,
+            a.score DESC, 
+            a.createdAt DESC
+        """)
+    List<Ad> findByPartialBehaviorTargeting(
+            @Param("position") AdPosition position,
+            @Param("scenarioCode") String scenarioCode,
+            @Param("demographic") DemographicSegment demographic,
+            @Param("engagement") EngagementLevel engagement,
+            @Param("cookingStyle") CookingStylePreference cookingStyle);
 
     /**
-     * 🔥 개선: 시나리오별로 그룹화해서 반환
+     * 시나리오 코드별 활성 광고 조회 (랜덤 서빙용)
      */
-    default Map<String, List<Ad>> findByScenarioCodesGrouped(Set<String> scenarioCodes) {
-        List<Ad> ads = findByScenarioCodesIn(scenarioCodes);
-        return ads.stream().collect(Collectors.groupingBy(Ad::getScenarioCode));
-    }
-
-    /**
-     * 기존 메서드들 개선
-     */
-    @Query("SELECT a FROM Ad a WHERE a.scenarioCode = :scenarioCode " +
-            "AND a.preferredPosition = :position AND a.status = 'ACTIVE' " +
-            "AND (a.startAt IS NULL OR a.startAt <= CURRENT_TIMESTAMP) " +
-            "AND (a.endAt IS NULL OR a.endAt >= CURRENT_TIMESTAMP) " +
-            "AND (a.budget IS NULL OR a.spentAmount < a.budget) " +
-            "ORDER BY a.score DESC")
-    List<Ad> findByScenarioCodeAndPosition(@Param("scenarioCode") String scenarioCode,
-                                           @Param("position") AdPosition position);
-
-    @Query("SELECT a FROM Ad a WHERE a.targetSegment = :segment " +
-            "AND a.preferredPosition = :position AND a.status = 'ACTIVE' " +
-            "AND (a.startAt IS NULL OR a.startAt <= CURRENT_TIMESTAMP) " +
-            "AND (a.endAt IS NULL OR a.endAt >= CURRENT_TIMESTAMP) " +
-            "AND (a.budget IS NULL OR a.spentAmount < a.budget) " +
-            "ORDER BY a.score DESC")
-    List<Ad> findBySegmentAndPosition(@Param("segment") SegmentType segment,
-                                      @Param("position") AdPosition position);
-
-    @Query("SELECT a FROM Ad a WHERE a.preferredPosition = :position AND a.status = 'ACTIVE' " +
-            "AND (a.startAt IS NULL OR a.startAt <= CURRENT_TIMESTAMP) " +
-            "AND (a.endAt IS NULL OR a.endAt >= CURRENT_TIMESTAMP) " +
-            "AND (a.budget IS NULL OR a.spentAmount < a.budget) " +
-            "ORDER BY a.score DESC")
-    List<Ad> findByPositionOnly(@Param("position") AdPosition position);
-
+    @Query("""
+        SELECT a FROM Ad a 
+        WHERE a.preferredPosition = :position 
+        AND a.status = 'ACTIVE' 
+        AND a.isDeleted = false
+        AND (a.startAt IS NULL OR a.startAt <= CURRENT_TIMESTAMP)
+        AND (a.endAt IS NULL OR a.endAt >= CURRENT_TIMESTAMP)
+        AND (a.budget IS NULL OR a.spentAmount IS NULL OR a.spentAmount < a.budget)
+        AND a.scenarioCode = :scenarioCode
+        ORDER BY a.score DESC, a.createdAt DESC
+        """)
+    List<Ad> findByScenarioCodeAndPosition(
+            @Param("scenarioCode") String scenarioCode,
+            @Param("position") AdPosition position);
 
 }
