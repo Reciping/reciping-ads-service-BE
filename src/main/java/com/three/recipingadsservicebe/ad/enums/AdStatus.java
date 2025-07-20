@@ -1,15 +1,22 @@
 package com.three.recipingadsservicebe.ad.enums;
 
-/**
- * 광고 상태 ENUM
- * ACTIVE: 활성 상태
- * INACTIVE: 비활성 (예산 소진, 기간 만료 등)
- * PAUSED: 일시 중지
- * EXPIRED: 만료됨
- */
+
 public enum AdStatus {
-    ACTIVE,
-    INACTIVE,
-    PAUSED,
-    EXPIRED
+    DRAFT("임시저장"),
+    PENDING("승인 대기"),
+    ACTIVE("활성"),
+    PAUSED("일시정지"),
+    EXPIRED("만료"),
+    REJECTED("거부"),
+    DELETED("삭제");
+
+    private final String description;
+
+    AdStatus(String description) {
+        this.description = description;
+    }
+
+    public String getDescription() {
+        return description;
+    }
 }

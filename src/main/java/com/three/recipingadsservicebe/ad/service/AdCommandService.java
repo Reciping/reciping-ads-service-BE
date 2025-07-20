@@ -87,6 +87,32 @@ public class AdCommandService {
         log.info("광고 수정 완료 - adId: {}", adId);
     }
 
+    /**
+     * 🔧 추가: 광고 상태 변경 메서드
+     */
+    @Transactional
+    public void updateAdStatus(Long adId, AdStatusUpdateRequest request) {
+        Ad ad = adRepository.findById(adId)
+                .orElseThrow(() -> new IllegalArgumentException("광고를 찾을 수 없습니다: " + adId));
+
+        // 현재 상태와 동일한 상태로 변경 시도하는 경우 체크
+        if (ad.getStatus() == request.getStatus()) {
+            log.warn("동일한 상태로 변경 시도 - adId: {}, currentStatus: {}", adId, ad.getStatus());
+            throw new IllegalArgumentException("현재 상태와 동일합니다: " + request.getStatus());
+        }
+
+        // 상태 변경 가능 여부 검증
+        validateStatusTransition(ad.getStatus(), request.getStatus(), adId);
+
+        // 상태 변경
+        AdStatus previousStatus = ad.getStatus();
+        ad.changeStatus(request.getStatus());
+
+        log.info("광고 상태 변경 완료 - adId: {}, {} -> {}",
+                adId, previousStatus, request.getStatus());
+    }
+
+
     @Transactional
     public void deleteAd(Long adId) {
         Ad ad = adRepository.findById(adId)
@@ -94,6 +120,33 @@ public class AdCommandService {
 
         ad.softDelete();
         log.info("광고 삭제 완료 - adId: {}", adId);
+    }
+
+    /**
+     * 🔧 상태 변경 유효성 검증
+     */
+    private void validateStatusTransition(AdStatus currentStatus, AdStatus newStatus, Long adId) {
+        // 삭제된 광고는 상태 변경 불가
+        if (currentStatus == AdStatus.DELETED) {
+            throw new IllegalArgumentException("삭제된 광고의 상태는 변경할 수 없습니다.");
+        }
+
+        // 거부된 광고는 임시저장으로만 변경 가능
+        if (currentStatus == AdStatus.REJECTED && newStatus != AdStatus.DRAFT) {
+            throw new IllegalArgumentException("거부된 광고는 임시저장 상태로만 변경 가능합니다.");
+        }
+
+        // 만료된 광고는 삭제로만 변경 가능
+        if (currentStatus == AdStatus.EXPIRED && newStatus != AdStatus.DELETED) {
+            throw new IllegalArgumentException("만료된 광고는 삭제로만 변경 가능합니다.");
+        }
+
+        // 임시저장에서 활성으로 바로 변경 시 검증 (승인 프로세스가 있다면)
+        if (currentStatus == AdStatus.DRAFT && newStatus == AdStatus.ACTIVE) {
+            log.info("임시저장에서 활성으로 직접 변경 - adId: {} (승인 프로세스 스킵)", adId);
+        }
+
+        log.debug("상태 변경 유효성 검증 통과 - adId: {}, {} -> {}", adId, currentStatus, newStatus);
     }
 
 

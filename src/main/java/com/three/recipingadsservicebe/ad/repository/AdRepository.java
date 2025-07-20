@@ -2,9 +2,12 @@ package com.three.recipingadsservicebe.ad.repository;
 
 import com.three.recipingadsservicebe.ad.entity.Ad;
 import com.three.recipingadsservicebe.ad.enums.AdPosition;
+import com.three.recipingadsservicebe.ad.enums.AdStatus;
 import com.three.recipingadsservicebe.targeting.enums.CookingStylePreference;
 import com.three.recipingadsservicebe.targeting.enums.DemographicSegment;
 import com.three.recipingadsservicebe.targeting.enums.EngagementLevel;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -89,5 +92,46 @@ public interface AdRepository extends JpaRepository<Ad, Long> {
     List<Ad> findByScenarioCodeAndPosition(
             @Param("scenarioCode") String scenarioCode,
             @Param("position") AdPosition position);
+
+    /**
+     * 페이징 조회 메서드들
+     */
+    Page<Ad> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+    Page<Ad> findByStatusOrderByCreatedAtDesc(AdStatus status, Pageable pageable);
+
+    Page<Ad> findByAdvertiserIdOrderByCreatedAtDesc(Long advertiserId, Pageable pageable);
+
+    Page<Ad> findByStatusAndAdvertiserIdOrderByCreatedAtDesc(
+            AdStatus status, Long advertiserId, Pageable pageable);
+
+    /**
+     * 카운트 메서드들
+     */
+    long countByAdvertiserId(Long advertiserId);
+
+    long countByStatus(AdStatus status);
+
+    /**
+     * 검색 메서드들
+     */
+    @Query("""
+    SELECT a FROM Ad a 
+    WHERE a.title LIKE %:keyword% 
+    OR a.targetUrl LIKE %:keyword%
+    ORDER BY a.createdAt DESC
+    """)
+    Page<Ad> findByKeyword(@Param("keyword") String keyword, Pageable pageable);
+
+    /**
+     * 성과 조회 메서드들
+     */
+    @Query("""
+    SELECT a FROM Ad a 
+    WHERE a.status = 'ACTIVE' 
+    AND a.clickCount > 0 
+    ORDER BY (CAST(a.clickCount AS float) / CAST(a.impressionCount AS float)) DESC
+    """)
+    List<Ad> findTopPerformingAds(Pageable pageable);
 
 }
