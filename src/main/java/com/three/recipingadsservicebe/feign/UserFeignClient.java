@@ -1,6 +1,6 @@
 package com.three.recipingadsservicebe.feign;
 
-import com.three.recipingadsservicebe.segment.dto.UserInfoDto;
+import com.three.recipingadsservicebe.targeting.dto.UserInfoDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
