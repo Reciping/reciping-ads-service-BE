@@ -4,6 +4,7 @@ import com.three.recipingadsservicebe.global.jwt.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -23,61 +24,58 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
-    private final CorsProperties corsProperties;
 
+    /**
+     * 🔧 개발/테스트 환경: 대부분 허용
+     */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    @Profile({"local", "dev", "test"})
+    public SecurityFilterChain devFilterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        // 모든 요청 허용 (개발 편의성)
+                        .anyRequest().permitAll()
+                );
+
+        return http.build();
+    }
+
+    /**
+     * 🔧 운영 환경: 실제 보안 적용
+     */
+    @Bean
+    @Profile({"prod", "staging"})
+    public SecurityFilterChain prodFilterChain(HttpSecurity http) throws Exception {
         JwtAuthorizationFilter jwtAuthorizationFilter = new JwtAuthorizationFilter(jwtUtil);
 
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-//                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/v3/api-docs/**",
-                                "/swagger-ui.html",
-                                "/swagger-ui/**"
-                        ).permitAll()
+                        // Swagger (운영에서는 제한)
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").hasRole("ADMIN")
 
-                        // ✅ 이미지 업로드 비회원 임시 허용
+                        // 공개 API들
                         .requestMatchers(HttpMethod.POST, "/api/v1/ads/images").permitAll()
-
-                        // ✅ 사용자 광고 조회 API는 인증 없이 허용
                         .requestMatchers(HttpMethod.GET, "/api/v1/ads/public/**").permitAll()
-
-                        .requestMatchers(HttpMethod.GET, "/api/v1/ads/test/**").permitAll()
-
-                        // ✅ 광고 노출/클릭 로그 API → 비회원 허용
+                        .requestMatchers(HttpMethod.GET, "/api/v1/ads/serve").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/ads/*/click").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/ads/log/**").permitAll()
 
-                        // ✅ 광고 CRUD는 ADMIN만 허용
+                        // ADMIN 전용 CRUD
                         .requestMatchers(HttpMethod.POST, "/api/v1/ads/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/ads/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/ads/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/ads/**").hasRole("ADMIN")
 
-                        // ✅ 그 외 요청은 인증만 필요
+                        // 나머지는 인증 필요
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthorizationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
-
-    // ✅ CORS 설정: 명시적 Origin 허용
-//    @Bean
-//    public CorsConfigurationSource corsConfigurationSource() {
-//        CorsConfiguration config = new CorsConfiguration();
-//        config.setAllowedOrigins(corsProperties.getAllowedOrigins());
-//        config.setAllowCredentials(true);
-//        config.addAllowedHeader("*");
-//        config.addAllowedMethod("*");
-//        config.addExposedHeader("Authorization");
-//
-//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-//        source.registerCorsConfiguration("/**", config);
-//        return source;
-//    }
 
 }
