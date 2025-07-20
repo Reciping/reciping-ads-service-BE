@@ -112,6 +112,15 @@ public class Ad {
         if (request.getEndAt() != null) this.endAt = request.getEndAt();
         if (request.getBillingType() != null) this.billingType = request.getBillingType();
         if (request.getBudget() != null) this.budget = request.getBudget();
+        if (request.getScore() != null) this.score = request.getScore();
+
+        // 🔧 행동태그 타겟팅 필드들 추가
+        if (request.getTargetDemographicSegment() != null)
+            this.targetDemographicSegment = request.getTargetDemographicSegment();
+        if (request.getTargetEngagementLevel() != null)
+            this.targetEngagementLevel = request.getTargetEngagementLevel();
+        if (request.getTargetCookingStyle() != null)
+            this.targetCookingStyle = request.getTargetCookingStyle();
 
         this.modifiedAt = LocalDateTime.now();
     }
