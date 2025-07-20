@@ -1,10 +1,9 @@
 package com.three.recipingadsservicebe.ad.entity;
 
-import com.three.recipingadsservicebe.abtest.entity.AbTestScenario;
 import com.three.recipingadsservicebe.ad.dto.AdUpdateRequest;
 import com.three.recipingadsservicebe.ad.enums.*;
 import com.three.recipingadsservicebe.advertiser.entity.Advertiser;
-import com.three.recipingadsservicebe.segment.enums.SegmentType;
+import com.three.recipingadsservicebe.targeting.enums.*;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -74,11 +73,23 @@ public class Ad {
     @Column(name = "ab_test_group", length = 10)
     private AbTestGroup abTestGroup;
 
+    @Column(name = "scenario_code")
+    private String scenarioCode;
+
+    // 🔧 새로운 행동태그 기반 타겟팅 필드들
     @Enumerated(EnumType.STRING)
-    @Column(name = "target_keyword", length = 50)
-    private TargetKeyword targetKeyword;
+    @Column(name = "target_demographic_segment", length = 50)
+    private DemographicSegment targetDemographicSegment;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "target_engagement_level", length = 50)
+    private EngagementLevel targetEngagementLevel;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "target_cooking_style", length = 50)
+    private CookingStylePreference targetCookingStyle;
+
+    // 공통 메타데이터
     private LocalDateTime createdAt;
     private LocalDateTime modifiedAt;
     private LocalDateTime deletedAt;
@@ -89,13 +100,6 @@ public class Ad {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "advertiser_id", nullable = false)
     private Advertiser advertiser;
-
-    @Column(name = "scenario_code")
-    private String scenarioCode;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "target_segment", length = 50)
-    private SegmentType targetSegment;
 
 
     public void updateFrom(AdUpdateRequest request) {
@@ -108,8 +112,6 @@ public class Ad {
         if (request.getEndAt() != null) this.endAt = request.getEndAt();
         if (request.getBillingType() != null) this.billingType = request.getBillingType();
         if (request.getBudget() != null) this.budget = request.getBudget();
-        if (request.getTargetSegment() != null) this.targetSegment = request.getTargetSegment();
-
 
         this.modifiedAt = LocalDateTime.now();
     }
@@ -140,6 +142,26 @@ public class Ad {
     public float calculateCTR() {
         if (impressionCount == null || impressionCount == 0) return 0f;
         return (float) clickCount / impressionCount;
+    }
+
+    // 🔧 새로운 타겟팅 매치 검증 메서드
+    public boolean isTargetingMatched(DemographicSegment userDemographic,
+                                      EngagementLevel userEngagement,
+                                      CookingStylePreference userCookingStyle) {
+        // 타겟팅이 설정되지 않은 경우 전체 대상
+        if (targetDemographicSegment == null && targetEngagementLevel == null && targetCookingStyle == null) {
+            return true;
+        }
+
+        // 각 타겟팅 조건 확인 (설정된 것만)
+        boolean demographicMatch = (targetDemographicSegment == null) ||
+                targetDemographicSegment.equals(userDemographic);
+        boolean engagementMatch = (targetEngagementLevel == null) ||
+                targetEngagementLevel.equals(userEngagement);
+        boolean cookingStyleMatch = (targetCookingStyle == null) ||
+                targetCookingStyle.equals(userCookingStyle);
+
+        return demographicMatch && engagementMatch && cookingStyleMatch;
     }
 }
 
