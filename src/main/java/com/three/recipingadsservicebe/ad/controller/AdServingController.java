@@ -5,7 +5,6 @@ import com.three.recipingadsservicebe.ad.enums.AdPosition;
 import com.three.recipingadsservicebe.ad.mapper.AdMapper;
 import com.three.recipingadsservicebe.ad.dto.AdResponse;
 import com.three.recipingadsservicebe.ad.service.AdRecommendationService;
-import com.three.recipingadsservicebe.log.dto.LogType;
 import com.three.recipingadsservicebe.log.logger.AdLogger;
 import com.three.recipingadsservicebe.global.security.UserDetailsImpl;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,12 +29,11 @@ public class AdServingController {
     private final ObjectMapper objectMapper;
 
     /**
-     * 🎯 핵심 API: 사용자 맞춤 광고 서빙
+     * 사용자 맞춤 광고 서빙
      */
     @GetMapping("/serve")
     public ResponseEntity<Map<String, Object>> serveAds(HttpServletRequest request) {
         Long userId = getCurrentUserId();
-
         log.info("광고 서빙 요청 - userId: {}", userId);
 
         try {
@@ -60,32 +58,41 @@ public class AdServingController {
             result.put("totalCount", totalAds);
             result.put("message", "광고 서빙 완료");
 
-            // 5. 로깅
-            try {
-                Map<String, Object> logPayload = new HashMap<>();
-                logPayload.put("totalAds", totalAds);
-                logPayload.put("userId", userId);
-                logPayload.put("positions", response.keySet());
+            // 5. 🔧 개선된 로깅 - 간편한 메서드 사용
+            Map<String, Object> servingData = new HashMap<>();
+            servingData.put("totalAds", totalAds);
+            servingData.put("userId", userId);
+            servingData.put("positions", response.keySet());
+            servingData.put("servingSuccess", totalAds > 0);
 
-                AdLogger.track(
-                        log,
-                        LogType.AD_SERVE,
-                        request.getRequestURI(),
-                        request.getMethod(),
-                        userId != null ? userId.toString() : null,
-                        null,
-                        null,
-                        objectMapper.writeValueAsString(logPayload),
-                        request
-                );
-            } catch (Exception e) {
-                log.warn("광고 서빙 로깅 실패: {}", e.getMessage());
-            }
+            // 첫 번째 광고에서 A/B 테스트 정보 추출 (있다면)
+            response.values().stream()
+                    .flatMap(List::stream)
+                    .findFirst()
+                    .ifPresent(adResponse -> {
+                        if (adResponse.getAbTestGroup() != null) {
+                            servingData.put("abGroup", adResponse.getAbTestGroup().name());
+                        }
+                        if (adResponse.getScenarioCode() != null) {
+                            servingData.put("scenario", adResponse.getScenarioCode());
+                        }
+                    });
+
+            AdLogger.logAdServing(log, request, userId != null ? userId.toString() : null, servingData);
 
             return ResponseEntity.ok(result);
 
         } catch (Exception e) {
             log.error("광고 서빙 중 오류 발생 - userId: {}", userId, e);
+
+            // 에러 로깅
+            Map<String, Object> errorData = new HashMap<>();
+            errorData.put("errorType", e.getClass().getSimpleName());
+            errorData.put("errorMessage", e.getMessage());
+            errorData.put("userId", userId);
+            errorData.put("servingSuccess", false);
+
+            AdLogger.logAdServing(log, request, userId != null ? userId.toString() : null, errorData);
 
             // 에러 응답
             Map<String, Object> errorResponse = new HashMap<>();
@@ -108,34 +115,20 @@ public class AdServingController {
             HttpServletRequest request) {
 
         Long userId = getCurrentUserId();
-
         log.info("광고 클릭 처리 - userId: {}, adId: {}, position: {}", userId, adId, position);
 
         try {
             AdPosition adPosition = AdPosition.valueOf(position);
             adRecommendationService.handleAdClick(userId, adId, adPosition);
 
-            // 클릭 로깅
-            try {
-                Map<String, Object> logPayload = new HashMap<>();
-                logPayload.put("adId", adId);
-                logPayload.put("position", position);
-                logPayload.put("userId", userId);
+            // 🔧 개선된 클릭 로깅
+            Map<String, Object> clickData = new HashMap<>();
+            clickData.put("adId", adId);
+            clickData.put("position", position);
+            clickData.put("userId", userId);
+            clickData.put("clickSuccess", true);
 
-                AdLogger.track(
-                        log,
-                        LogType.AD_CLICK,
-                        request.getRequestURI(),
-                        request.getMethod(),
-                        userId != null ? userId.toString() : null,
-                        null,
-                        adId.toString(),
-                        objectMapper.writeValueAsString(logPayload),
-                        request
-                );
-            } catch (Exception e) {
-                log.warn("광고 클릭 로깅 실패: {}", e.getMessage());
-            }
+            AdLogger.logAdClick(log, request, userId != null ? userId.toString() : null, adId.toString(), clickData);
 
             Map<String, Object> response = new HashMap<>();
             response.put("message", "클릭 처리 완료");
@@ -145,6 +138,17 @@ public class AdServingController {
 
         } catch (Exception e) {
             log.error("광고 클릭 처리 중 오류 - userId: {}, adId: {}", userId, adId, e);
+
+            // 에러 클릭 로깅
+            Map<String, Object> errorClickData = new HashMap<>();
+            errorClickData.put("adId", adId);
+            errorClickData.put("position", position);
+            errorClickData.put("userId", userId);
+            errorClickData.put("clickSuccess", false);
+            errorClickData.put("errorType", e.getClass().getSimpleName());
+            errorClickData.put("errorMessage", e.getMessage());
+
+            AdLogger.logAdClick(log, request, userId != null ? userId.toString() : null, adId.toString(), errorClickData);
 
             Map<String, Object> errorResponse = new HashMap<>();
             errorResponse.put("message", "클릭 처리 실패");
