@@ -1,0 +1,166 @@
+name: CI Pipeline
+
+# 1
+on:
+  push:
+    branches: [ dev ]
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REGISTRY: 082808744580.dkr.ecr.ap-northeast-2.amazonaws.com
+  ECR_REPOSITORY: reciping-ads-service
+  JAVA_VERSION: '17'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Run tests
+        run: ./gradlew test --no-daemon
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: build/test-results/
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+
+    outputs:
+      image-tag: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Git config
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build JAR
+        run: ./gradlew clean bootJar --no-daemon
+
+      - name: Get latest version tag and increment
+        id: version
+        run: |
+          git fetch --tags --force
+          latest_tag=$(git tag --sort=-v:refname | grep '^v' | head -n 1)
+          echo "Latest tag: $latest_tag"
+
+          if [ -z "$latest_tag" ]; then
+            echo "No tag found. Starting at v1.0.0"
+            next_tag="v1.0.0"
+          else
+            next_tag=$(echo $latest_tag | awk -F. -v OFS=. '{print $1, $2, $3+1}')
+          fi
+
+          echo "Next version tag: $next_tag"
+          echo "version=$next_tag" >> "$GITHUB_OUTPUT"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          mask-password: 'true'
+
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ env.ECR_REGISTRY }}
+          IMAGE_TAG: ${{ steps.version.outputs.version }}
+        run: |
+          FULL_IMAGE_TAG="${ECR_REGISTRY}/${{ env.ECR_REPOSITORY }}:${IMAGE_TAG}"
+          echo "Building Docker Image: $FULL_IMAGE_TAG"
+
+          docker build --no-cache --platform linux/amd64 -t ${FULL_IMAGE_TAG} .
+          docker push ${FULL_IMAGE_TAG}
+          echo "Successfully pushed: ${FULL_IMAGE_TAG}"
+
+      - name: Create and push git tag
+        run: |
+          echo "Creating git tag: ${{ steps.version.outputs.version }}"
+          git tag ${{ steps.version.outputs.version }}
+          git push origin ${{ steps.version.outputs.version }}
+          echo "Successfully created and pushed tag: ${{ steps.version.outputs.version }}"
+
+  security-scan:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Scan Docker image
+        run: |
+          IMAGE_TAG="${{ needs.build-and-push.outputs.image-tag }}"
+          echo "Scanning image with tag: $IMAGE_TAG"
+          
+          aws ecr start-image-scan --repository-name ${{ env.ECR_REPOSITORY }} --image-id imageTag=$IMAGE_TAG || true
+          
+          sleep 30
+          
+          aws ecr describe-image-scan-findings --repository-name ${{ env.ECR_REPOSITORY }} --image-id imageTag=$IMAGE_TAG || echo "스캔 결과를 가져올 수 없습니다."

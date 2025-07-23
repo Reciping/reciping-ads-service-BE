@@ -37,6 +37,6 @@ out/
 .vscode/
 
 /**/src/main/resources/application-dev.properties
-/**/src/main/resources/application-prod.properties
-/**/src/main/resources/application-test.properties
+/**/src/main/resources/application-prod.yml
+/**/src/test/resources/application-test.properties
 .env
