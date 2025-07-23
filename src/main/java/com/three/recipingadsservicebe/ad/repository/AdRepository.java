@@ -134,4 +134,20 @@ public interface AdRepository extends JpaRepository<Ad, Long> {
     """)
     List<Ad> findTopPerformingAds(Pageable pageable);
 
+    /**
+     * 🎲 랜덤 활성 광고 조회 (테스트에서 사용하는 핵심 메서드!)
+     */
+    @Query(value = """
+        SELECT * FROM ads 
+        WHERE preferred_position = :#{#position.name()} 
+        AND status = 'ACTIVE' 
+        AND is_deleted = false
+        ORDER BY RANDOM() 
+        LIMIT :limit
+        """, nativeQuery = true)
+    List<Ad> findRandomActiveAds(
+            @Param("position") AdPosition position,
+            @Param("limit") int limit
+    );
+
 }
