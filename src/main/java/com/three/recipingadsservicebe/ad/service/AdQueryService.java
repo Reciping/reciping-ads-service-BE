@@ -1,7 +1,7 @@
 package com.three.recipingadsservicebe.ad.service;
 
 import com.three.recipingadsservicebe.ad.entity.Ad;
-import com.three.recipingadsservicebe.ad.enums.AdStatus;;
+import com.three.recipingadsservicebe.ad.enums.AdStatus;
 import com.three.recipingadsservicebe.ad.repository.AdRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
