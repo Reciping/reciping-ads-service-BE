@@ -25,7 +25,7 @@ public class AdLogger {
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
 
     /**
-     * 🔧 개선된 광고 도메인 전용 로깅 메서드
+     * 🔧 개선된 광고 도메인 전용 로깅 메서드 (JSON 콘솔 출력)
      */
     public static void track(
             Logger logger,
@@ -54,13 +54,13 @@ public class AdLogger {
                     userId, transactionId, targetId, payload, request
             );
 
-            // 3. MDC 컨텍스트 설정 (Loki 필터링용)
+            // 3. MDC 컨텍스트 설정 (JSON 로깅용)
             setMDCContext(logType, actorType, userId, targetId, logData);
 
             // 4. 메시지 구성
             String message = buildLogMessage(logType, logData, userId, path, method, traceId);
 
-            // 5. 구조화된 로깅
+            // 5. 구조화된 JSON 로깅
             logger.info(message, convertMapToStructuredArgs(logData));
 
         } catch (Exception e) {
@@ -344,7 +344,7 @@ public class AdLogger {
     }
 
     /**
-     * MDC 컨텍스트 설정 (Loki 라벨링용)
+     * MDC 컨텍스트 설정 (JSON 필드 포함용)
      */
     private static void setMDCContext(LogType logType, LogActorType actorType,
                                       String userId, String targetId, Map<String, Object> logData) {
@@ -353,7 +353,7 @@ public class AdLogger {
         MDC.put("userId", userId != null ? userId : "GUEST");
         MDC.put("targetId", targetId != null ? targetId : "-");
 
-        // 핵심 비즈니스 차원들을 MDC에 설정 (Loki 쿼리 최적화)
+        // 핵심 비즈니스 차원들을 MDC에 설정 (JSON 로깅에서 최상위 필드로 노출)
         if (logData.containsKey("adPosition")) {
             MDC.put("adPosition", logData.get("adPosition").toString());
         }
