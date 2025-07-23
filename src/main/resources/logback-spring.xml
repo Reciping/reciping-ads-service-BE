@@ -1,312 +1,115 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="true">
 
-    <!-- ===== 프로파일별 로그 경로 설정 ===== -->
-    <springProfile name="local,default,dev">
-        <property name="LOG_PATH" value="./logs/ads-service"/>
-    </springProfile>
+    <!-- ===== JSON 콘솔 출력 (운영 환경용) ===== -->
+    <appender name="JSON_STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <!-- 타임존 설정 -->
+            <timeZone>Asia/Seoul</timeZone>
+            <!-- 커스텀 필드 추가 -->
+            <customFields>{"service":"ads-service","environment":"${spring.profiles.active:-dev}"}</customFields>
+            <!-- MDC 키 포함 -->
+            <includeMdcKeyName>traceId</includeMdcKeyName>
+            <includeMdcKeyName>logType</includeMdcKeyName>
+            <includeMdcKeyName>userId</includeMdcKeyName>
+            <includeMdcKeyName>userSegment</includeMdcKeyName>
+            <includeMdcKeyName>scenario</includeMdcKeyName>
+            <includeMdcKeyName>abGroup</includeMdcKeyName>
+            <includeMdcKeyName>servingSuccess</includeMdcKeyName>
+            <includeMdcKeyName>actorType</includeMdcKeyName>
+            <includeMdcKeyName>targetId</includeMdcKeyName>
+            <includeMdcKeyName>adPosition</includeMdcKeyName>
+        </encoder>
+    </appender>
 
-    <springProfile name="prod">
-        <property name="LOG_PATH" value="/var/log/reciping/ads-service"/>
-    </springProfile>
-
-    <property name="LOG_FILE" value="ads-service-app"/>
-
-    <!-- ===== 콘솔 출력 (로컬 개발용) ===== -->
+    <!-- ===== 일반 텍스트 콘솔 출력 (로컬 개발용) ===== -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level [%X{traceId}] %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
-    <!-- ===== 기본 애플리케이션 로그 ===== -->
-    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH}/${LOG_FILE}.log</file>
-
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_PATH}/${LOG_FILE}.%d{yyyy-MM-dd}.log</fileNamePattern>
-            <maxHistory>14</maxHistory>
-            <totalSizeCap>10GB</totalSizeCap>
-        </rollingPolicy>
-
-        <encoder>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId}] %logger{36} - %msg%n</pattern>
-            <immediateFlush>true</immediateFlush>
-        </encoder>
-    </appender>
-
-    <!-- ===== 🔧 수정: 광고 서빙 전용 로그 (필터 간소화) ===== -->
-    <appender name="AD_SERVING_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH}/ad-serving.log</file>
-
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_PATH}/ad-serving.%d{yyyy-MM-dd}.log</fileNamePattern>
-            <maxHistory>30</maxHistory>
-            <totalSizeCap>20GB</totalSizeCap>
-        </rollingPolicy>
-
-        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
-            <providers>
-                <timestamp>
-                    <timeZone>Asia/Seoul</timeZone>
-                    <pattern>yyyy-MM-dd'T'HH:mm:ss.SSS</pattern>
-                </timestamp>
-                <version/>
-                <logLevel/>
-                <message/>
-                <!-- 서빙 특화 MDC -->
-                <mdc>
-                    <includeMdcKeyName>traceId</includeMdcKeyName>
-                    <includeMdcKeyName>logType</includeMdcKeyName>
-                    <includeMdcKeyName>userId</includeMdcKeyName>
-                    <includeMdcKeyName>userSegment</includeMdcKeyName>
-                    <includeMdcKeyName>scenario</includeMdcKeyName>
-                    <includeMdcKeyName>abGroup</includeMdcKeyName>
-                    <includeMdcKeyName>servingSuccess</includeMdcKeyName>
-                </mdc>
-                <arguments>
-                    <includeNonStructuredArguments>false</includeNonStructuredArguments>
-                </arguments>
-                <pattern>
-                    <pattern>
-                        {
-                        "service": "ads-service",
-                        "log_category": "ad_serving",
-                        "environment": "${spring.profiles.active:-dev}"
-                        }
-                    </pattern>
-                </pattern>
-            </providers>
-            <includeContext>false</includeContext>
-        </encoder>
-
-        <!-- 🔧 수정: 간단한 로거 이름 기반 필터로 변경 -->
-        <filter class="ch.qos.logback.core.filter.EvaluatorFilter">
-            <evaluator class="ch.qos.logback.classic.boolex.OnMarkerEvaluator">
-                <marker>AD_SERVING</marker>
-            </evaluator>
-            <onMismatch>NEUTRAL</onMismatch>
-            <onMatch>ACCEPT</onMatch>
-        </filter>
-    </appender>
-
-    <!-- ===== 🔧 수정: 광고 관리 전용 로그 (필터 간소화) ===== -->
-    <appender name="AD_MANAGEMENT_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH}/ad-management.log</file>
-
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_PATH}/ad-management.%d{yyyy-MM-dd}.log</fileNamePattern>
-            <maxHistory>90</maxHistory>
-            <totalSizeCap>5GB</totalSizeCap>
-        </rollingPolicy>
-
-        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
-            <providers>
-                <timestamp>
-                    <timeZone>Asia/Seoul</timeZone>
-                </timestamp>
-                <logLevel/>
-                <message/>
-                <mdc>
-                    <includeMdcKeyName>traceId</includeMdcKeyName>
-                    <includeMdcKeyName>logType</includeMdcKeyName>
-                    <includeMdcKeyName>actorType</includeMdcKeyName>
-                    <includeMdcKeyName>userId</includeMdcKeyName>
-                    <includeMdcKeyName>targetId</includeMdcKeyName>
-                </mdc>
-                <arguments>
-                    <includeNonStructuredArguments>false</includeNonStructuredArguments>
-                </arguments>
-                <pattern>
-                    <pattern>
-                        {
-                        "service": "ads-service",
-                        "log_category": "ad_management",
-                        "environment": "${spring.profiles.active:-dev}"
-                        }
-                    </pattern>
-                </pattern>
-            </providers>
-            <includeContext>false</includeContext>
-        </encoder>
-    </appender>
-
-    <!-- ===== 🔧 수정: A/B 테스트 분석용 로그 (필터 제거) ===== -->
-    <appender name="AB_TEST_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH}/ab-test-events.log</file>
-
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_PATH}/ab-test-events.%d{yyyy-MM-dd}.log</fileNamePattern>
-            <maxHistory>60</maxHistory>
-            <totalSizeCap>15GB</totalSizeCap>
-        </rollingPolicy>
-
-        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
-            <providers>
-                <timestamp>
-                    <timeZone>Asia/Seoul</timeZone>
-                </timestamp>
-                <message/>
-                <!-- A/B 테스트 특화 MDC -->
-                <mdc>
-                    <includeMdcKeyName>traceId</includeMdcKeyName>
-                    <includeMdcKeyName>userId</includeMdcKeyName>
-                    <includeMdcKeyName>abGroup</includeMdcKeyName>
-                    <includeMdcKeyName>scenario</includeMdcKeyName>
-                    <includeMdcKeyName>adPosition</includeMdcKeyName>
-                    <includeMdcKeyName>userSegment</includeMdcKeyName>
-                </mdc>
-                <arguments>
-                    <includeNonStructuredArguments>false</includeNonStructuredArguments>
-                </arguments>
-                <pattern>
-                    <pattern>
-                        {
-                        "service": "ads-service",
-                        "log_category": "ab_test",
-                        "experiment": "behavior_targeting_vs_random",
-                        "environment": "${spring.profiles.active:-dev}"
-                        }
-                    </pattern>
-                </pattern>
-            </providers>
-            <includeContext>false</includeContext>
-        </encoder>
-    </appender>
-
-    <!-- ===== 🔧 수정: 에러 및 폴백 전용 로그 (레벨 필터만 사용) ===== -->
-    <appender name="ERROR_FALLBACK_LOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_PATH}/errors-fallbacks.log</file>
-
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_PATH}/errors-fallbacks.%d{yyyy-MM-dd}.log</fileNamePattern>
-            <maxHistory>30</maxHistory>
-            <totalSizeCap>5GB</totalSizeCap>
-        </rollingPolicy>
-
-        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
-            <providers>
-                <timestamp>
-                    <timeZone>Asia/Seoul</timeZone>
-                </timestamp>
-                <logLevel/>
-                <message/>
-                <stackTrace/>
-                <mdc/>
-                <arguments>
-                    <includeNonStructuredArguments>false</includeNonStructuredArguments>
-                </arguments>
-                <pattern>
-                    <pattern>
-                        {
-                        "service": "ads-service",
-                        "log_category": "errors_fallbacks",
-                        "environment": "${spring.profiles.active:-dev}"
-                        }
-                    </pattern>
-                </pattern>
-            </providers>
-            <includeContext>true</includeContext>
-        </encoder>
-
-        <!-- 🔧 수정: 간단한 레벨 필터만 사용 -->
-        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>WARN</level>
-        </filter>
-    </appender>
-
-    <!-- ===== 비동기 로깅 설정 (성능 최적화) ===== -->
-
-    <appender name="ASYNC_AD_SERVING" class="ch.qos.logback.classic.AsyncAppender">
-        <appender-ref ref="AD_SERVING_LOG"/>
-        <queueSize>2048</queueSize>
-        <discardingThreshold>0</discardingThreshold>
-        <includeCallerData>false</includeCallerData>
-        <neverBlock>true</neverBlock>
-        <maxFlushTime>3000</maxFlushTime>
-    </appender>
-
-    <appender name="ASYNC_AD_MANAGEMENT" class="ch.qos.logback.classic.AsyncAppender">
-        <appender-ref ref="AD_MANAGEMENT_LOG"/>
-        <queueSize>1024</queueSize>
-        <discardingThreshold>0</discardingThreshold>
-        <includeCallerData>false</includeCallerData>
-        <neverBlock>true</neverBlock>
-        <maxFlushTime>3000</maxFlushTime>
-    </appender>
-
-    <appender name="ASYNC_AB_TEST" class="ch.qos.logback.classic.AsyncAppender">
-        <appender-ref ref="AB_TEST_LOG"/>
-        <queueSize>4096</queueSize>
-        <discardingThreshold>0</discardingThreshold>
-        <includeCallerData>false</includeCallerData>
-        <neverBlock>true</neverBlock>
-        <maxFlushTime>2000</maxFlushTime>
-    </appender>
-
     <!-- ===== 프로파일별 루트 로거 설정 ===== -->
 
+    <!-- 로컬 개발 환경: 일반 텍스트 콘솔 -->
     <springProfile name="local,default">
         <root level="INFO">
             <appender-ref ref="CONSOLE" />
-            <appender-ref ref="FILE" />
         </root>
     </springProfile>
 
-    <springProfile name="dev,prod">
+    <!-- 개발/운영 환경: JSON 콘솔 -->
+    <springProfile name="dev,prod,test">
         <root level="INFO">
-            <appender-ref ref="FILE" />
-            <appender-ref ref="ERROR_FALLBACK_LOG" />
+            <appender-ref ref="JSON_STDOUT" />
         </root>
     </springProfile>
 
-    <!-- ===== 🔧 수정: 클래스별 특화 로거 설정 (로거 이름 기반) ===== -->
+    <!-- ===== 광고 도메인 특화 로거 설정 ===== -->
 
     <!-- 광고 서빙 컨트롤러 -->
     <logger level="INFO"
             name="com.three.recipingadsservicebe.ad.controller.AdServingController"
-            additivity="true">
-        <appender-ref ref="ASYNC_AD_SERVING" />
-        <appender-ref ref="ASYNC_AB_TEST" />
+            additivity="false">
+        <springProfile name="local,default">
+            <appender-ref ref="CONSOLE" />
+        </springProfile>
+        <springProfile name="dev,prod,test">
+            <appender-ref ref="JSON_STDOUT" />
+        </springProfile>
     </logger>
 
     <!-- 광고 관리 컨트롤러 -->
     <logger level="INFO"
             name="com.three.recipingadsservicebe.ad.controller.AdManagementController"
-            additivity="true">
-        <appender-ref ref="ASYNC_AD_MANAGEMENT" />
+            additivity="false">
+        <springProfile name="local,default">
+            <appender-ref ref="CONSOLE" />
+        </springProfile>
+        <springProfile name="dev,prod,test">
+            <appender-ref ref="JSON_STDOUT" />
+        </springProfile>
     </logger>
 
     <!-- 광고 추천 서비스 -->
     <logger level="INFO"
             name="com.three.recipingadsservicebe.ad.service.AdRecommendationService"
-            additivity="true">
-        <appender-ref ref="ASYNC_AD_SERVING" />
-        <appender-ref ref="ASYNC_AB_TEST" />
+            additivity="false">
+        <springProfile name="local,default">
+            <appender-ref ref="CONSOLE" />
+        </springProfile>
+        <springProfile name="dev,prod,test">
+            <appender-ref ref="JSON_STDOUT" />
+        </springProfile>
     </logger>
 
-    <!-- AdLogger -->
+    <!-- AdLogger (광고 도메인 전용 로거) -->
     <logger level="INFO"
             name="com.three.recipingadsservicebe.log.logger.AdLogger"
             additivity="false">
-        <appender-ref ref="ASYNC_AD_SERVING" />
-        <appender-ref ref="ASYNC_AD_MANAGEMENT" />
-        <appender-ref ref="ASYNC_AB_TEST" />
+        <springProfile name="local,default">
+            <appender-ref ref="CONSOLE" />
+        </springProfile>
+        <springProfile name="dev,prod,test">
+            <appender-ref ref="JSON_STDOUT" />
+        </springProfile>
     </logger>
 
     <!-- ===== 개발 환경 디버깅 설정 ===== -->
     <springProfile name="local">
-        <logger name="com.three.recipingadsservicebe.ad" level="DEBUG"/>
-        <logger name="com.three.recipingadsservicebe.targeting" level="DEBUG"/>
-        <logger name="com.three.recipingadsservicebe.abtest" level="DEBUG"/>
-        <logger name="com.three.recipingadsservicebe.log" level="DEBUG"/>
+        <logger name="com.three.recipingadsservicebe.ad" level="DEBUG" additivity="true"/>
+        <logger name="com.three.recipingadsservicebe.targeting" level="DEBUG" additivity="true"/>
+        <logger name="com.three.recipingadsservicebe.abtest" level="DEBUG" additivity="true"/>
+        <logger name="com.three.recipingadsservicebe.log" level="DEBUG" additivity="true"/>
     </springProfile>
 
-    <!-- ===== 특정 라이브러리 로그 레벨 조정 ===== -->
+    <!-- ===== 외부 라이브러리 로그 레벨 조정 ===== -->
     <logger name="org.springframework.security" level="WARN"/>
     <logger name="org.apache.http" level="WARN"/>
     <logger name="com.fasterxml.jackson" level="WARN"/>
     <logger name="net.logstash.logback" level="WARN"/>
     <logger name="org.springframework.web.servlet.DispatcherServlet" level="WARN"/>
+    <logger name="org.hibernate" level="WARN"/>
+    <logger name="com.zaxxer.hikari" level="WARN"/>
 
 </configuration>
