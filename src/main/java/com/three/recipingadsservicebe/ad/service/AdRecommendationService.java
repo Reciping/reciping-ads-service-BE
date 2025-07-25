@@ -12,7 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
@@ -220,7 +220,7 @@ public class AdRecommendationService {
         }
 
         // 기간 확인
-        LocalDateTime now = LocalDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now();
         if (ad.getStartAt() != null && now.isBefore(ad.getStartAt())) return false;
         if (ad.getEndAt() != null && now.isAfter(ad.getEndAt())) return false;
 

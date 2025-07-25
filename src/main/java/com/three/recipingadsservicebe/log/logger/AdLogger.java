@@ -11,7 +11,7 @@ import org.slf4j.MDC;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
@@ -162,7 +162,7 @@ public class AdLogger {
         Map<String, Object> logData = new HashMap<>();
 
         // 기본 메타데이터
-        logData.put("timestamp", LocalDateTime.now().format(TIMESTAMP_FORMATTER));
+        logData.put("timestamp", OffsetDateTime.now().format(TIMESTAMP_FORMATTER));
         logData.put("path", path);
         logData.put("method", method);
         logData.put("transactionId", transactionId != null ? transactionId : "-");

@@ -7,7 +7,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Getter
 @NoArgsConstructor
@@ -41,7 +41,7 @@ public class AbTestEvent {
     private String position;
 
     @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    private OffsetDateTime createdAt;
 
     // 편의 메서드들
     public static AbTestEvent createImpression(Long userId, String scenarioCode,
@@ -53,7 +53,7 @@ public class AbTestEvent {
                 .adId(adId)
                 .eventType("IMPRESSION")
                 .position(position)
-                .createdAt(LocalDateTime.now())
+                .createdAt(OffsetDateTime.now())
                 .build();
     }
 
@@ -66,7 +66,7 @@ public class AbTestEvent {
                 .adId(adId)
                 .eventType("CLICK")
                 .position(position)
-                .createdAt(LocalDateTime.now())
+                .createdAt(OffsetDateTime.now())
                 .build();
     }
 }

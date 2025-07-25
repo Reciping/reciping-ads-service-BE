@@ -7,7 +7,7 @@ import com.three.recipingadsservicebe.targeting.enums.EngagementLevel;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Getter
 @Setter
@@ -17,8 +17,8 @@ public class AdCreateRequest {
     private String imageUrl;
     private String targetUrl;
     private AdPosition preferredPosition;
-    private LocalDateTime startAt;
-    private LocalDateTime endAt;
+    private OffsetDateTime startAt;
+    private OffsetDateTime endAt;
     private BillingType billingType;
     private Long budget;
     private Float score;

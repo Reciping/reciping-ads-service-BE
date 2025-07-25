@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Getter
 @NoArgsConstructor
@@ -29,9 +29,9 @@ public class Advertiser {
     @Column(length = 255)
     private String email;
 
-    private LocalDateTime createdAt;
-    private LocalDateTime modifiedAt;
-    private LocalDateTime deletedAt;
+    private OffsetDateTime createdAt;
+    private OffsetDateTime modifiedAt;
+    private OffsetDateTime deletedAt;
 
     @Column(nullable = false)
     private Boolean isDeleted = false;

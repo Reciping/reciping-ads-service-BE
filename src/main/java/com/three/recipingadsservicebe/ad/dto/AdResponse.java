@@ -9,7 +9,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Getter
 @Builder
@@ -22,8 +22,8 @@ public class AdResponse {
     private String imageUrl;
     private String targetUrl;
     private AdPosition preferredPosition;
-    private LocalDateTime startAt;
-    private LocalDateTime endAt;
+    private OffsetDateTime startAt;
+    private OffsetDateTime endAt;
     private AdStatus status;
     private BillingType billingType;
     private Long budget;
@@ -47,8 +47,8 @@ public class AdResponse {
     private Long advertiserId;
 
     // 메타데이터
-    private LocalDateTime createdAt;
-    private LocalDateTime modifiedAt;
+    private OffsetDateTime createdAt;
+    private OffsetDateTime modifiedAt;
 
     /**
      * 계산된 필드들

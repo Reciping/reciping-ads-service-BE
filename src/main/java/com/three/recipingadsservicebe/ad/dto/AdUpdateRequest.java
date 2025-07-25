@@ -15,7 +15,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Getter
 @Builder
@@ -36,9 +36,9 @@ public class AdUpdateRequest {
 
     private AdPosition preferredPosition;
 
-    private LocalDateTime startAt;
+    private OffsetDateTime startAt;
 
-    private LocalDateTime endAt;
+    private OffsetDateTime endAt;
 
     private BillingType billingType;
 
