@@ -7,7 +7,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Getter
 @Builder
@@ -25,8 +25,8 @@ public class UserInfoDto {
     private DemographicSegment demographicSegment;
     private EngagementLevel engagementLevel;
     private CookingStylePreference cookingStylePreference;
-    private LocalDateTime segmentCalculatedAt;
-    private LocalDateTime behaviorCalculatedAt;
+    private OffsetDateTime segmentCalculatedAt;
+    private OffsetDateTime behaviorCalculatedAt;
 
 
     public enum SexType {

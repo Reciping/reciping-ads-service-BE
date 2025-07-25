@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Getter
 @NoArgsConstructor
@@ -45,8 +45,8 @@ public class Ad {
     @Column(name = "preferred_position", length = 100)
     private AdPosition preferredPosition;
 
-    private LocalDateTime startAt;
-    private LocalDateTime endAt;
+    private OffsetDateTime startAt;
+    private OffsetDateTime endAt;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 50)
@@ -90,9 +90,9 @@ public class Ad {
     private CookingStylePreference targetCookingStyle;
 
     // 공통 메타데이터
-    private LocalDateTime createdAt;
-    private LocalDateTime modifiedAt;
-    private LocalDateTime deletedAt;
+    private OffsetDateTime createdAt;
+    private OffsetDateTime modifiedAt;
+    private OffsetDateTime deletedAt;
 
     @Column(nullable = false)
     private Boolean isDeleted = false;
@@ -122,17 +122,17 @@ public class Ad {
         if (request.getTargetCookingStyle() != null)
             this.targetCookingStyle = request.getTargetCookingStyle();
 
-        this.modifiedAt = LocalDateTime.now();
+        this.modifiedAt = OffsetDateTime.now();
     }
 
     public void changeStatus(AdStatus status) {
         this.status = status;
-        this.modifiedAt = LocalDateTime.now();
+        this.modifiedAt = OffsetDateTime.now();
     }
 
     public void softDelete() {
         this.isDeleted = true;
-        this.deletedAt = LocalDateTime.now();
+        this.deletedAt = OffsetDateTime.now();
     }
 
 

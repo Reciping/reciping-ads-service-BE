@@ -6,7 +6,7 @@ import com.three.recipingadsservicebe.targeting.enums.EngagementLevel;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Getter
 @Builder
@@ -15,8 +15,8 @@ public class UserProfileDto {
     private DemographicSegment demographicSegment;
     private EngagementLevel engagementLevel;
     private CookingStylePreference cookingStylePreference;
-    private LocalDateTime segmentCalculatedAt;
-    private LocalDateTime behaviorCalculatedAt;
+    private OffsetDateTime segmentCalculatedAt;
+    private OffsetDateTime behaviorCalculatedAt;
 
     // A/B 테스트 그룹 결정 편의 메서드
     public boolean isTreatmentGroup() {
