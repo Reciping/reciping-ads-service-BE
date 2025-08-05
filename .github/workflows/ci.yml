@@ -7,7 +7,7 @@ on:
 
 env:
   AWS_REGION: ap-northeast-2
-  ECR_REGISTRY: 082808744580.dkr.ecr.ap-northeast-2.amazonaws.com
+  ECR_REGISTRY: 892117097999.dkr.ecr.ap-northeast-2.amazonaws.com
   ECR_REPOSITORY: reciping-ads-service
   JAVA_VERSION: '17'
 
@@ -88,11 +88,6 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
-
-      - name: Inject application-prod.yml from secret
-        run: |
-          mkdir -p src/main/resources
-          echo "${{ secrets.APPLICATION_PROD_YML }}" | base64 -d > src/main/resources/application-prod.yml
 
       - name: Build JAR
         run: ./gradlew clean bootJar --no-daemon
