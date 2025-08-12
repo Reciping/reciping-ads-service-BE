@@ -54,6 +54,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Actuator 허용 (프로브/프로메테우스 스크랩용)
+                        .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info", "/actuator/prometheus").permitAll()
                         // Swagger (운영에서는 제한)
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").hasRole("ADMIN")
 
